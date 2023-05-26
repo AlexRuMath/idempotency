@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static edu.mipt.accounts.AccountResponse.okResponse;
@@ -16,14 +18,28 @@ import static edu.mipt.accounts.AccountResponse.okResponse;
 public class IdempotencyAccounts implements Accounts {
     private final AccountRepository accountRepository;
 
+    private final Map<String, AccountResponse> processes_requests = new HashMap<>();
+
     @Override
     public AccountResponse withdraw(String rqUid, long accountId, long amount) {
-        return process(accountId, acc -> acc.withdraw(amount));
+        if(processes_requests.containsKey(rqUid)){
+            return processes_requests.get(rqUid);
+        }
+
+        AccountResponse response = process(accountId, acc -> acc.withdraw(amount));
+        processes_requests.put(rqUid, response);
+        return response;
     }
 
     @Override
     public AccountResponse deposit(String rqUid, long accountId, long amount) {
-        return process(accountId, acc -> acc.deposit(amount));
+        if(processes_requests.containsKey(rqUid)){
+            return processes_requests.get(rqUid);
+        }
+
+        AccountResponse response = process(accountId, acc -> acc.deposit(amount));
+        processes_requests.put(rqUid, response);
+        return response;
     }
 
     private AccountResponse process(long accountId, Consumer<Account> processing) {
