@@ -22,22 +22,20 @@ public class IdempotencyAccounts implements Accounts {
 
     @Override
     public AccountResponse withdraw(String rqUid, long accountId, long amount) {
-        if(processes_requests.containsKey(rqUid)){
-            return processes_requests.get(rqUid);
-        }
-
-        AccountResponse response = process(accountId, acc -> acc.withdraw(amount));
-        processes_requests.put(rqUid, response);
-        return response;
+        return ProcessRequest(rqUid, accountId, acc -> acc.withdraw(amount));
     }
 
     @Override
     public AccountResponse deposit(String rqUid, long accountId, long amount) {
+        return ProcessRequest(rqUid, accountId, acc -> acc.deposit(amount));
+    }
+
+    private AccountResponse ProcessRequest(String rqUid, long accountId, Consumer<Account> processing){
         if(processes_requests.containsKey(rqUid)){
             return processes_requests.get(rqUid);
         }
 
-        AccountResponse response = process(accountId, acc -> acc.deposit(amount));
+        AccountResponse response = process(accountId, processing);
         processes_requests.put(rqUid, response);
         return response;
     }
